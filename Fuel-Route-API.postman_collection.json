@@ -1,0 +1,133 @@
+{
+  "info": {
+    "name": "Fuel Route API",
+    "description": "Django API for planning fuel stops along a driving route",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/health/",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8000",
+          "path": ["api", "health", ""]
+        },
+        "description": "Check if the API is running"
+      },
+      "response": []
+    },
+    {
+      "name": "Route NYC to Chicago",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/route/?start=New%20York,%20NY&finish=Chicago,%20IL",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8000",
+          "path": ["api", "route", ""],
+          "query": [
+            {
+              "key": "start",
+              "value": "New York, NY",
+              "description": "Starting location (city, state)"
+            },
+            {
+              "key": "finish",
+              "value": "Chicago, IL",
+              "description": "Destination location (city, state)"
+            },
+            {
+              "key": "max_range_miles",
+              "value": "500",
+              "description": "Max vehicle range in miles (optional, default 500)"
+            },
+            {
+              "key": "fuel_efficiency_mpg",
+              "value": "10",
+              "description": "Vehicle fuel efficiency in MPG (optional, default 10)"
+            }
+          ]
+        },
+        "description": "Plan route with optimal fuel stops from NYC to Chicago"
+      },
+      "response": []
+    },
+    {
+      "name": "Route LA to San Francisco",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/route/?start=Los%20Angeles,%20CA&finish=San%20Francisco,%20CA",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8000",
+          "path": ["api", "route", ""],
+          "query": [
+            {
+              "key": "start",
+              "value": "Los Angeles, CA",
+              "description": "Starting location"
+            },
+            {
+              "key": "finish",
+              "value": "San Francisco, CA",
+              "description": "Destination location"
+            },
+            {
+              "key": "max_range_miles",
+              "value": "500"
+            },
+            {
+              "key": "fuel_efficiency_mpg",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Plan route from LA to San Francisco"
+      },
+      "response": []
+    },
+    {
+      "name": "Route Dallas to Austin",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/route/?start=Dallas,%20TX&finish=Austin,%20TX",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8000",
+          "path": ["api", "route", ""],
+          "query": [
+            {
+              "key": "start",
+              "value": "Dallas, TX"
+            },
+            {
+              "key": "finish",
+              "value": "Austin, TX"
+            },
+            {
+              "key": "max_range_miles",
+              "value": "500"
+            },
+            {
+              "key": "fuel_efficiency_mpg",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Plan a shorter route between Dallas and Austin"
+      },
+      "response": []
+    }
+  ]
+}
