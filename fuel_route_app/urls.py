@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from route_optimizer.views import index
 
 urlpatterns = [
+    path('', index, name='home'),
     path('admin/', admin.site.urls),
     path('api/', include('route_optimizer.urls')),
 ]

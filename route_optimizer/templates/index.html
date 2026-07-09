@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Route Optimizer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .intro { font-size: 1.1em; opacity: 0.95; }
+        
+        .form-section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 8px; color: #333; font-size: 0.95em; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; transition: border 0.3s; }
+        input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        button:active { transform: translateY(0); }
+        
+        .loading { display: none; text-align: center; padding: 40px; color: #667eea; font-size: 1.2em; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .error { display: none; background: #fee; color: #c33; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #c33; }
+        
+        .results { display: none; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+        .results-header { background: #f9f9f9; padding: 20px; border-bottom: 1px solid #eee; }
+        .results-header h2 { color: #333; margin-bottom: 10px; }
+        .route-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }
+        .info-card { background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #667eea; }
+        .info-card strong { color: #667eea; display: block; font-size: 1.3em; }
+        .info-card span { color: #666; font-size: 0.9em; display: block; margin-top: 5px; }
+        
+        .map-container { height: 500px; width: 100%; border-bottom: 1px solid #eee; }
+        
+        .stops-section { padding: 20px; }
+        .stops-section h3 { color: #333; margin-bottom: 15px; font-size: 1.3em; }
+        .stop { background: #f9f9f9; padding: 15px; border-radius: 4px; margin-bottom: 12px; border-left: 4px solid #27ae60; }
+        .stop strong { color: #27ae60; display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .stop-detail { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; font-size: 0.9em; color: #666; }
+        .stop-detail span { display: block; }
+        .no-stops { background: #f0f9ff; padding: 20px; border-radius: 4px; text-align: center; color: #0066cc; }
+        
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr 1fr; }
+            .route-info { grid-template-columns: repeat(2, 1fr); }
+            .stop-detail { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⛽ Fuel Route Optimizer</h1>
+            <p class="intro">Plan the cheapest fuel stops along your driving route</p>
+        </header>
+
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start">Starting Location</label>
+                    <input type="text" id="start" placeholder="e.g., New York, NY" value="New York, NY">
+                </div>
+                <div class="form-group">
+                    <label for="finish">Destination</label>
+                    <input type="text" id="finish" placeholder="e.g., Chicago, IL" value="Chicago, IL">
+                </div>
+                <div class="form-group">
+                    <label for="range">Max Range (miles)</label>
+                    <input type="number" id="range" value="500" min="100" max="1000">
+                </div>
+                <div class="form-group">
+                    <label for="mpg">Fuel Efficiency (MPG)</label>
+                    <input type="number" id="mpg" value="10" min="5" max="50" step="0.5">
+                </div>
+            </div>
+            <button onclick="planRoute()">Plan Route</button>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Planning your route...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="results-header">
+                <h2>Route Plan</h2>
+                <div style="margin-top:10px">
+                    <button id="download-pdf" onclick="downloadPDF()">Download PDF</button>
+                </div>
+                <div class="route-info">
+                    <div class="info-card">
+                        <strong id="distance">0</strong>
+                        <span>Distance (miles)</span>
+                    </div>
+                    <div class="info-card">
+                        <strong id="duration">0</strong>
+                        <span>Duration (hours)</span>
+                    </div>
+                    <div class="info-card">
+                        <strong id="stops-count">0</strong>
+                        <span>Fuel Stops</span>
+                    </div>
+                    <div class="info-card">
+                        <strong id="total-cost">$0</strong>
+                        <span>Total Fuel Cost</span>
+                    </div>
+                </div>
+            </div>
+            <div class="map-container" id="map"></div>
+            <div class="stops-section">
+                <h3>Fuel Stops</h3>
+                <div id="stops-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map = null;
+        let routeLayer = null;
+        let markersLayer = null;
+
+        function initMap() {
+            if (!map) {
+                map = L.map('map').setView([39.5, -98.35], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+            }
+            if (!routeLayer) routeLayer = L.featureGroup().addTo(map);
+            if (!markersLayer) markersLayer = L.featureGroup().addTo(map);
+            routeLayer.clearLayers();
+            markersLayer.clearLayers();
+        }
+
+        async function planRoute() {
+            const start = document.getElementById('start').value.trim();
+            const finish = document.getElementById('finish').value.trim();
+            const range = document.getElementById('range').value;
+            const mpg = document.getElementById('mpg').value;
+
+            if (!start || !finish) {
+                showError('Please enter both start and finish locations');
+                return;
+            }
+
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
+            try {
+                const response = await fetch(
+                    `/api/route/?start=${encodeURIComponent(start)}&finish=${encodeURIComponent(finish)}&max_range_miles=${range}&fuel_efficiency_mpg=${mpg}`
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to plan route');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            initMap();
+
+            const route = data.route;
+            const fuel = data.fuel_strategy;
+
+            // Update info cards
+            document.getElementById('distance').textContent = route.distance_miles.toFixed(1);
+            document.getElementById('duration').textContent = (route.duration_minutes / 60).toFixed(1);
+            document.getElementById('stops-count').textContent = fuel.stops.length;
+            document.getElementById('total-cost').textContent = '$' + fuel.total_fuel_cost.toFixed(2);
+
+            // Draw route with a dark outline and bright yellow highlight for visibility
+            const latlngs = route.geometry.map(p => [p.lat, p.lon]);
+            // base outline
+            L.polyline(latlngs, { color: '#222', weight: 10, opacity: 0.7, interactive: false }).addTo(routeLayer);
+            // highlighted route on top
+            L.polyline(latlngs, { color: '#ffd700', weight: 6, opacity: 1.0 }).addTo(routeLayer);
+
+            // Add start and end markers (red)
+            L.circleMarker([data.start.lat, data.start.lon], {
+                radius: 9, color: '#c0392b', fill: true, fillColor: '#c0392b', fillOpacity: 1, weight: 2, opacity: 1
+            }).addTo(markersLayer).bindPopup('<b>Start</b><br>' + (document.getElementById('start').value));
+
+            L.circleMarker([data.finish.lat, data.finish.lon], {
+                radius: 9, color: '#c0392b', fill: true, fillColor: '#c0392b', fillOpacity: 1, weight: 2, opacity: 1
+            }).addTo(markersLayer).bindPopup('<b>Destination</b><br>' + (document.getElementById('finish').value));
+
+            // Add fuel stop markers (red) using actual coordinates returned by the API
+            fuel.stops.forEach((stop, idx) => {
+                if (typeof stop.lat === 'number' && typeof stop.lon === 'number') {
+                    L.circleMarker([stop.lat, stop.lon], {
+                        radius: 8, color: '#c0392b', fill: true, fillColor: '#c0392b', fillOpacity: 1, weight: 2, opacity: 1
+                    }).addTo(markersLayer).bindPopup(`<b>${stop.station_name}</b><br>$${stop.price_per_gallon.toFixed(3)}/gal`);
+                }
+            });
+
+            // Fit bounds to include both route and markers
+            let bounds = routeLayer.getBounds();
+            const mBounds = markersLayer.getBounds();
+            if (mBounds && mBounds.isValid && mBounds.isValid()) {
+                bounds = bounds.extend(mBounds);
+            }
+            if (bounds && bounds.isValid && bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            // Display stops
+            const stopsList = document.getElementById('stops-list');
+            if (fuel.stops.length === 0) {
+                stopsList.innerHTML = '<div class="no-stops">✓ No fuel stops needed - your destination is within range!</div>';
+            } else {
+                stopsList.innerHTML = fuel.stops.map((stop, idx) => `
+                    <div class="stop">
+                        <strong>Stop ${idx + 1}: ${stop.station_name}</strong>
+                        <div class="stop-detail">
+                            <span><strong>Location:</strong> ${stop.city}, ${stop.state}</span>
+                            <span><strong>Distance from start:</strong> ${stop.distance_from_start_miles.toFixed(1)} mi</span>
+                            <span><strong>Price:</strong> $${stop.price_per_gallon.toFixed(3)}/gal</span>
+                            <span><strong>Gallons needed:</strong> ${stop.gallons_needed.toFixed(2)}</span>
+                            <span><strong>Estimated cost:</strong> $${stop.estimated_cost.toFixed(2)}</span>
+                            <span><strong>Route deviation:</strong> ${stop.route_deviation_miles.toFixed(1)} mi</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('start').addEventListener('keypress', e => e.key === 'Enter' && planRoute());
+        document.getElementById('finish').addEventListener('keypress', e => e.key === 'Enter' && planRoute());
+        
+        // Download the visible results area as a PDF using html2pdf.js
+        function downloadPDF() {
+            const resultsEl = document.getElementById('results');
+            if (!resultsEl || resultsEl.style.display === 'none') {
+                showError('Please plan a route first before downloading a PDF.');
+                return;
+            }
+            const opt = {
+                margin:       10,
+                filename:     'route-plan.pdf',
+                image:        { type: 'jpeg', quality: 0.95 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'pt', format: 'a4', orientation: 'landscape' }
+            };
+            // Temporarily expand the map container to improve capture quality
+            const mapEl = document.getElementById('map');
+            const originalHeight = mapEl.style.height;
+            mapEl.style.height = '700px';
+            if (map && map.invalidateSize) { try { map.invalidateSize(); } catch (e) {} }
+
+            // Use the html2pdf bundle loaded below
+            window.html2pdf().set(opt).from(resultsEl).save().then(() => {
+                // restore
+                mapEl.style.height = originalHeight;
+                if (map && map.invalidateSize) { try { map.invalidateSize(); } catch (e) {} }
+            }).catch(err => {
+                showError('Failed to generate PDF: ' + err);
+                mapEl.style.height = originalHeight;
+                if (map && map.invalidateSize) { try { map.invalidateSize(); } catch (e) {} }
+            });
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+</body>
+</html>

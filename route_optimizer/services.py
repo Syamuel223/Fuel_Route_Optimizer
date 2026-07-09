@@ -309,11 +309,14 @@ def plan_fuel_stops(start: str | dict[str, Any] | tuple[float, float], finish: s
         current_miles = selection['projected_route_miles']
         total_cost += selection['estimated_cost']
         remaining = route_distance_miles - current_miles
+        station_lat, station_lon = get_station_coordinates(stop)
         stops.append({
             'station_name': stop.name,
             'city': stop.city,
             'state': stop.state,
             'address': stop.address,
+            'lat': float(station_lat),
+            'lon': float(station_lon),
             'price_per_gallon': float(stop.price),
             'distance_from_previous_miles': round(selection['distance_to_stop_miles'], 2),
             'distance_from_start_miles': round(current_miles, 2),

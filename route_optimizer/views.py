@@ -1,9 +1,14 @@
 import json
 
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from .services import RoutePlanningError, plan_fuel_stops
+
+
+def index(request):
+    return render(request, 'index.html')
 
 
 @require_http_methods(['GET', 'POST'])
